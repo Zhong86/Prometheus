@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  langflow:
+    image: langflowai/langflow:latest
+    ports:
+      - "7860:7860"
+    environment:
+      - LANGFLOW_AUTO_LOGIN=true
+    volumes:
+      - langflow_data:/app/langflow
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - langflow
+    restart: unless-stopped
+
+volumes:
+  langflow_data:
