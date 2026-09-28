@@ -120,7 +120,7 @@ FastAPI /research endpoint
 3. Prompt engineering: system prompt instructs Gemini to extract unsolved problem statements from paper abstracts, explicitly avoiding topics matching `negative_context`
 4. Export/save Langflow node configuration to `/flows/academic_problems_node.json`
 
-**Status:** `[ ] pending`
+**Status:** `[~] in progress` — tool wrapper (`backend/app/tools/academic_problems.py`) and component (`flows/components/athena_research/academic_problems.py`) done; extraction prompt at `flows/prompts/academic_problem_extraction.md`. Todo 4 (node JSON export) needs live Langflow UI wiring — see `flows/README.md`.
 
 ---
 
@@ -142,7 +142,7 @@ FastAPI /research endpoint
 3. Register as a Langflow custom component in `/flows/components/public_friction.py`
 4. Export node config to `/flows/public_friction_node.json`
 
-**Status:** `[ ] pending`
+**Status:** `[~] in progress` — tool wrapper and component done (`backend/app/tools/public_friction.py`, `flows/components/athena_research/public_friction.py`). Todo 4 (node JSON export) needs live Langflow UI wiring.
 
 ---
 
@@ -163,7 +163,7 @@ FastAPI /research endpoint
 3. Add output parser (Pydantic or JSON mode) to enforce structured output
 4. Export node config to `/flows/synthesize_node.json`
 
-**Status:** `[ ] pending`
+**Status:** `[~] in progress` — prompt drafted at `flows/prompts/synthesize.md`; output shape matches `SynthesizedProblem` in `backend/app/models/idea.py`. No custom component needed (built-in Prompt + Model + Structured Output). Todos 2-4 need live Langflow UI wiring.
 
 ---
 
@@ -185,7 +185,7 @@ FastAPI /research endpoint
 3. Register as a Langflow component and wire after `synthesize`
 4. Export node config to `/flows/competition_analyst_node.json`
 
-**Status:** `[ ] pending`
+**Status:** `[~] in progress` — tool wrapper and component done (`backend/app/tools/competition_analyst.py`, `flows/components/athena_research/competition_analyst.py`); analysis prompt at `flows/prompts/competition_analyst.md`. Todo 4 needs live Langflow UI wiring.
 
 ---
 
@@ -206,7 +206,7 @@ FastAPI /research endpoint
 3. Register as a Langflow component and wire after `competition_analyst`
 4. Export node config to `/flows/feasibility_node.json`
 
-**Status:** `[ ] pending`
+**Status:** `[~] in progress` — prompt drafted at `flows/prompts/feasibility.md`; output shape matches `FeasibilityAssessment` in `backend/app/models/idea.py`. No custom component needed. Todos 3-4 need live Langflow UI wiring.
 
 ---
 
@@ -229,7 +229,7 @@ FastAPI /research endpoint
 4. Wire outputs to flow output nodes
 5. Export node config to `/flows/spec_generator_node.json`
 
-**Status:** `[ ] pending`
+**Status:** `[~] in progress` — `IdeaPayload` Pydantic schema done (`backend/app/models/idea.py`); PRD prompt at `flows/prompts/spec_generator_prd.md`, structured-output schema/prompt at `flows/prompts/spec_generator_json.md`. Todos 2, 4-5 need live Langflow UI wiring.
 
 ---
 

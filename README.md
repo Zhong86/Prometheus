@@ -20,7 +20,8 @@ See [`athena-research-plan.md`](./athena-research-plan.md) for the full system p
 |------|---------|
 | Python | 3.11+ |
 | Node.js | 18+ |
-| Docker & Docker Compose | latest |
+| Langflow | latest (run separately — see step 2) |
+| Docker & Docker Compose | latest (optional, backend only) |
 
 ---
 
@@ -35,17 +36,24 @@ cp .env.example .env
 # Fill in all values in .env
 ```
 
-### 2. Start Langflow (Docker)
+### 2. Point your Langflow instance at this repo's custom components
+
+Athena's custom components (SerpAPI, Tavily) live in `/flows/components`. Langflow just needs to know where to find them — it doesn't matter whether Langflow itself runs via `pip install langflow`, the desktop app, or its own Docker container; the backend only talks to it over HTTP via `LANGFLOW_BASE_URL`.
 
 ```bash
-docker compose up langflow -d
+pip install google-search-results tavily-python   # into whatever env runs Langflow
+export LANGFLOW_COMPONENTS_PATH=/absolute/path/to/Athena_Research/flows/components
+langflow run
 ```
 
-Open [http://localhost:7860](http://localhost:7860), import `/flows/athena_research_flow.json` (once created in Sub-Task 12), copy the **Flow ID**, and set it in `.env`:
+Open [http://localhost:7860](http://localhost:7860) (or wherever your instance runs), import `/flows/athena_research_flow.json` (once created in Sub-Task 12), copy the **Flow ID**, and set it in `.env`:
 
 ```
 LANGFLOW_FLOW_ID=<paste-flow-id-here>
+LANGFLOW_BASE_URL=<your-langflow-url>   # default: http://localhost:7860
 ```
+
+See [`flows/README.md`](./flows/README.md) for what's in `/flows/components` and `/flows/prompts`.
 
 ### 3. Start the FastAPI backend
 
@@ -68,13 +76,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 5. (Optional) Run everything with Docker Compose
+### 5. (Optional) Run the backend with Docker Compose
 
 ```bash
 docker compose up --build
 ```
 
-> The `backend` service also starts via Docker Compose. The frontend is run separately in dev mode for fast HMR.
+> `docker-compose.yml` only runs the `backend` service — Langflow and the frontend are run separately (see steps 2 and 4).
 
 ---
 
@@ -111,9 +119,11 @@ docker compose up --build
 │   ├── app/                  # App Router pages
 │   ├── components/           # Shared React components
 │   └── lib/                  # API client utilities
-├── flows/                    # Langflow JSON exports & custom components
-│   └── components/
-├── docker-compose.yml
+├── flows/                    # Langflow custom components, prompts & JSON exports
+│   ├── components/athena_research/
+│   ├── prompts/
+│   └── README.md
+├── docker-compose.yml         # backend only — Langflow runs separately
 ├── .env.example
 └── athena-research-plan.md
 ```
