@@ -1,6 +1,20 @@
-version: "3.9"
-
 services:
+  langflow:
+    build:
+      context: ./flows
+      dockerfile: Dockerfile
+    ports:
+      - "7860:7860"
+    environment:
+      - LANGFLOW_AUTO_LOGIN=true
+    env_file:
+      - .env
+    volumes:
+      - langflow_data:/app/langflow
+      - .:/app/project:ro
+    command: ["langflow", "run", "--host", "0.0.0.0", "--components-path", "/app/project/flows/components"]
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -9,4 +23,9 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    depends_on:
+      - langflow
     restart: unless-stopped
+
+volumes:
+  langflow_data:
