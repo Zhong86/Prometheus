@@ -1,7 +1,7 @@
 # Prompt: feasibility (Technical Feasibility Evaluator)
 
 Wire after `synthesize` and `competition_analyst`. No custom component
-needed — this is a Prompt Template + Google Generative AI Model pair, with a
+needed — this is a Prompt Template + Language Model pair, with a
 Structured Output parser validating against `FeasibilityAssessment` (see
 `backend/app/models/idea.py`).
 

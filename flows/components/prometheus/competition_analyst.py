@@ -4,11 +4,16 @@ Wraps Tavily search to find existing SaaS/products that already solve the
 synthesized problem statement. Wire the `results` output into a Prompt +
 Model pair (see /flows/prompts/competition_analyst.md) to extract structured
 competitor data and a market-gap summary.
+
+Self-contained on purpose — see the note in academic_problems.py. The same
+search logic also lives in backend/app/tools/competition_analyst.py for the
+FastAPI side; keep both in sync if the query-building logic changes.
 """
 from __future__ import annotations
 
-from . import _bootstrap  # noqa: F401
-from app.tools.competition_analyst import search_competitors
+import os
+
+from tavily import TavilyClient
 
 from lfx.custom.custom_component.component import Component
 from lfx.io import IntInput, MessageTextInput, Output, SecretStrInput
@@ -46,15 +51,34 @@ class CompetitionAnalystComponent(Component):
     ]
 
     def fetch_competitors(self) -> Data:
+        key = self.tavily_key or os.environ.get("TAVILY_API_KEY")
+        if not key:
+            raise RuntimeError("TAVILY_API_KEY is not set")
+
+        client = TavilyClient(api_key=key)
+        query = f'"{self.problem_statement}" software product OR SaaS OR app pricing reviews'
+
         try:
-            results = search_competitors(
-                problem_statement=self.problem_statement,
+            response = client.search(
+                query=query,
+                search_depth="advanced",
+                include_raw_content=True,
                 max_results=self.max_results or 8,
-                api_key=self.tavily_key or None,
             )
         except Exception as exc:
             self.status = f"Tavily search failed: {exc}"
             raise
+
+        results = [
+            {
+                "source": result.get("url", ""),
+                "title": result.get("title", ""),
+                "content": result.get("content", ""),
+                "raw_content": result.get("raw_content", ""),
+                "score": result.get("score", 0.0),
+            }
+            for result in response.get("results", [])
+        ]
 
         self.status = f"Found {len(results)} candidate competitors/products."
         return Data(data={"results": results})

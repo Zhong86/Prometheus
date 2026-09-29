@@ -3,7 +3,7 @@
 Runs in parallel with the Structured Output node described in
 `spec_generator_json.md`, both fed by the same upstream data (synthesize +
 competition_analyst + feasibility). This one is a plain Prompt Template +
-Google Generative AI Model pair with a **plain-text output** (no JSON mode)
+Language Model pair with a **plain-text output** (no JSON mode)
 — its Message output is the `prd_markdown` field.
 
 ## System

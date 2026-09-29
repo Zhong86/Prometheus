@@ -1,7 +1,7 @@
 # Prompt: competition_analyst
 
 Wire after the **Competition Analyst (Tavily)** custom component. Feed its
-`results` output into a Prompt Template + Google Generative AI Model pair,
+`results` output into a Prompt Template + Language Model pair,
 with a Structured Output parser validating against a list of `Competitor`
 (see `backend/app/models/idea.py`) plus a `market_gap_summary` string.
 

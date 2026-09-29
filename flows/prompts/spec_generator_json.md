@@ -1,7 +1,7 @@
 # Node: spec_generator (Structured Output → IdeaPayload)
 
 No custom Python component — use Langflow's built-in **Structured Output**
-component (Prompt Template → Google Generative AI Model → Structured Output)
+component (Prompt Template → Language Model → Structured Output)
 configured with the schema below. It must produce the same shape as
 `IdeaPayload` in `backend/app/models/idea.py`, since this is the JSON payload
 written to AstraDB and returned to the frontend.
