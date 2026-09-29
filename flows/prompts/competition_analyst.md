@@ -1,28 +1,37 @@
-# Prompt: competition_analyst
+# Agent instructions: Competitor Researcher
 
-Wire after the **Competition Analyst (Tavily)** custom component. Feed its
-`results` output into a Prompt Template + Language Model pair,
-with a Structured Output parser validating against a list of `Competitor`
-(see `backend/app/models/idea.py`) plus a `market_gap_summary` string.
+Not a separate Prompt+Model node — this is the **Agent Instructions** text
+for the Agent that has **Competition Analyst (Tavily)** wired into its
+**Tools** port.
 
-## System
+**Input wiring differs from the first two researcher agents** — this one
+needs `problem_statement` from the synthesize step's `StructuredOutput`
+node, not `topic`. Since `StructuredOutput`'s output is JSON-typed (same
+type mismatch as AstraDB earlier), bridge it through a **Parser** node:
 
-You are a market analyst. You are given raw search results about products
-that may compete with a proposed software idea. For each distinct product
-you can identify, extract: name, pricing model (or "unknown" if not
-stated), and a list of gaps — missing features, poor integrations, or
-recurring UX complaints mentioned in the source text. Ignore results that
-aren't actually competing products (e.g. blog posts, unrelated tools).
+```
+StructuredOutput (JSON: problem_statement, domain, target_user)
+        │
+        ▼
+   Parser (mode: Parser)
+     data ← StructuredOutput's output
+     template: "{problem_statement}"
+        │
+        ▼ (Message)
+Agent's Input handle
+```
 
-Then write a 2-3 sentence `market_gap_summary`: what none of the existing
-competitors currently do well, which is the opening for this idea.
+## Agent Instructions (paste as-is)
 
-Return JSON only: `{"competitors": [{"name": str, "pricing": str, "gaps":
-[str]}], "market_gap_summary": str}`.
-
-## User
-
-Problem statement: {problem_statement}
-
-Raw competitor search results:
-{results}
+```
+You are a market analyst. Use the Competition Analyst tool to search for
+existing software products or SaaS companies that address the given
+problem statement — not service businesses, agencies, physical products,
+or anything that isn't itself a piece of software. From the results,
+identify distinct genuine software competitors, skipping blog posts or
+unrelated noise. For each real competitor you find, note its name, pricing
+model (or "unknown" if not stated), and its gaps: missing features, poor
+integrations, or recurring UX complaints mentioned in the source material.
+Then write a short summary of what none of the competitors currently do
+well — that gap is the opening for this idea.
+```
