@@ -1,28 +1,47 @@
-# Node: synthesize
+# Node: synthesize (LLM call 2 of 4)
 
-Not a plain Prompt Template + Language Model pair — use the
-**StructuredOutput** component (category: LLM Operations), which does the
-LLM call and schema-validated parsing in one node.
+**Structured Output** component (category: LLM Operations). Turns the
+academic papers and user complaints into **3 distinct ideas** a developer
+could build, and — because it now knows each problem, user and the tools
+they complain about — also writes each idea's competitor search queries.
 
-- **Input Message** (`input_value`) ← a Prompt Template's rendered output:
-  topic + negative_context + both researcher agents' findings, wired as
-  `{topic}`, `{negative_context}`, `{academic_findings}`,
-  `{friction_findings}`. Wire the **Academic Researcher** and **Friction
-  Researcher** agents' `Response` outputs (Message-typed) into the last two
-  — no Parser needed, they're already the right type.
-- **Language Model** (`model`) — pick Gemini via the inline dropdown.
-- **Format Instructions** (`system_prompt`) — the actual reasoning task
-  lives here, not just formatting rules (see below).
-- **Output Schema** (`output_schema`) — a table with three rows:
-  `problem_statement` (string), `domain` (string), `target_user` (string) —
-  matches `SynthesizedProblem` in `backend/app/models/idea.py`.
+Structured Output natively returns a list of objects; with more than one it
+emits `{"results": [ {...}, {...}, {...} ]}`. Every downstream node
+(Competition Analyst, Format Ideas, Idea Report) handles that shape.
+
+- **Input Message** (`input_value`) ← Prompt Template below.
+- **Language Model** — Google Generative AI, `gemini-3.5-flash-lite`.
+  If ideas come out vague, move just this node to `gemini-3.5-flash`.
+- **Format Instructions** (`system_prompt`) ← text below.
 - **Schema Name** — `SynthesizedProblem`.
+- **Output Schema** — see table. `problem_statement`, `domain` and
+  `target_user` match `SynthesizedProblem` in `backend/app/models/idea.py`.
+- **Output** (`structured_output`, JSON) →
+  - `queries` on **Competition Analyst** (key `competitor_queries`)
+  - **Format Ideas** (header/template below) → Competition Analysis and
+    Feasibility prompt templates as `{idea}`
+  - `synthesis` on **Idea Report**
 
-Output: `Structured Output` (JSON) with those three fields, ready to feed
-the Competitor Researcher agent (via a Parser, since JSON → Message still
-needs the same bridge used for AstraDB).
+## Output Schema
 
-## Prompt Template content (feeds `input_value`)
+Field order matters: the model fills fields in schema order, so `evidence`
+comes before `problem_statement` to make it ground each idea in specific
+findings before naming it. `evidence` is a list of pipe-separated strings
+rather than `dict` because Gemini returns empty `{}` objects for free-form
+`dict` fields; **Idea Report** parses them into `{source, finding, url}`.
+
+| Name | Type | As List | Description |
+|---|---|---|---|
+| `idea_id` | int | False | 1, 2 or 3. |
+| `evidence` | str | True | 2-4 findings this idea is built on, formatted exactly as: `source \| finding in one sentence \| url`, where source is one of paper, reddit, hackernews, capterra, producthunt. From at least two different sources whenever possible. Copy URLs exactly from the input. |
+| `problem_statement` | str | False | One concrete sentence naming the specific broken workflow and who has it, e.g. "Manual PDF data re-keying in private clinic intake forms." |
+| `domain` | str | False | Industry or category, e.g. "Healthcare", "Legal", "DevOps", "Agriculture". |
+| `target_user` | str | False | The specific role that has this problem, e.g. "Solo clinic administrative staff". |
+| `solution_type` | str | False | Exactly one of: software, ai_automation, iot, other_tech. |
+| `solution_approach` | str | False | 1-2 sentences on what a developer would build, e.g. "A web app that runs uploaded intake PDFs through an OCR + LLM extraction pipeline and pushes fields into the clinic's PMS via its API." |
+| `competitor_queries` | str | True | 2 short web search queries to find existing products or open-source projects that already tackle this problem. |
+
+## Prompt Template (feeds `input_value`)
 
 ```
 Topic: {topic}
@@ -30,39 +49,99 @@ Topic: {topic}
 Ideas to avoid (from prior runs — steer away from these):
 {negative_context}
 
-Academic problems found:
+Academic papers found:
 {academic_findings}
 
-Public friction / complaints found:
+Public friction / complaints found (grouped by site):
 {friction_findings}
+```
+
+- `{topic}` ← Chat Input.
+- `{negative_context}` ← Astra DB search → Parser.
+- `{academic_findings}` ← Academic Problems `papers`.
+- `{friction_findings}` ← Public Friction `complaints`.
+
+## Format Ideas template (Structured Output → `{idea}` downstream)
+
+Header:
+
+```
+===== Idea {idea_id} =====
+```
+
+Template:
+
+```
+Problem statement: {problem_statement}
+Domain: {domain}
+Target user: {target_user}
+Solution type: {solution_type}
+Proposed solution: {solution_approach}
 ```
 
 ## Format Instructions (feeds `system_prompt`)
 
 ```
-You are a startup ideation analyst. You will be given a topic, a list of
-academic problems, and a list of real-world friction points found
-separately — they were not pre-matched to each other.
+You are a startup ideation analyst working for a software developer who
+wants to find real problems to build products for. You are given a topic, a
+list of academic papers, and real-world user complaints from Reddit, Hacker
+News, Capterra and Product Hunt, grouped into blocks headed
+"===== Source: <site> =====". The papers and complaints were found
+separately and were not pre-matched. Some results are irrelevant noise —
+ignore those, including papers from unrelated fields.
 
-Your job: actively decide how to combine them. Read through both lists,
-judge which academic problem (if any) and which friction point (if any)
-actually reinforce the same underlying issue, and fuse those into ONE
-concrete, specific gap solvable by building a software product (web app,
-SaaS, mobile app, API, etc.) — not a hardware, policy, or purely
-operational fix. Don't just concatenate the first item from each list —
-weigh relevance and pick (or synthesize across) whichever pairing produces
-the most specific, coherent idea. If nothing pairs well, it's fine to build
-the idea from the single strongest finding alone rather than forcing a weak
-combination.
+Return exactly 3 objects — 3 different ideas, with idea_id 1, 2 and 3.
 
-The gap must be narrow enough to name a single target user and a single
-broken workflow — not a category of problems. Example of the right level
-of specificity: "Manual PDF data re-keying in private clinic intake
-forms" — not "healthcare data entry is hard."
+1. Read every source. Go through the papers and every source block before
+deciding anything; don't stop after the first block. Treat Capterra reviews
+as strong evidence: they are users complaining about the software
+they already pay for, which is exactly where a developer can build
+something better.
+
+2. Pick 3 distinct problems. Each idea must address a different underlying
+problem — a different broken workflow, or a different target user — not
+three variations or feature sets of the same idea. Rank them: idea 1 is the
+best-supported problem. Prefer problems that show up in more than one
+source (e.g. a Reddit complaint confirmed by Capterra reviews, or a
+complaint backed by a paper) over a one-off comment, and don't pick a
+problem just because its source had the most results.
+
+Each idea must be something a developer or small dev team (1-3 people)
+could solve with technology:
+- software: web/mobile/desktop app, SaaS, API, integration, browser
+  extension, developer tool
+- ai_automation: LLM agent or workflow, ML model, scripted automation
+- iot: sensors or embedded devices with software, built from off-the-shelf
+  hardware
+- other_tech: anything else achievable mainly through code
+Not a policy, legal, staffing or purely operational fix, and not something
+that needs custom hardware manufacturing, regulatory approval (e.g. a
+medical device) or a large enterprise sales cycle before anyone can use it.
+
+Each problem must be narrow enough to name a single target user and a
+single broken workflow — not a category of problems. Right level of
+specificity: "Manual PDF data re-keying in private clinic intake forms".
+Too broad: "healthcare data entry is hard".
 
 Do not propose anything matching the ideas-to-avoid list, even loosely.
 
-Return the result as valid JSON matching the provided schema —
-problem_statement, domain, and target_user. No extra commentary or
-markdown.
+3. For each idea, fill in this order:
+- evidence: 2-4 findings the idea is built on, as "source | finding |
+  url", from at least two different sources whenever the research allows.
+  The same finding may support more than one idea only if nothing else
+  fits. Never invent URLs.
+- problem_statement, domain, target_user.
+- solution_type, and in solution_approach 1-2 sentences on what the
+  developer would build and its key technical pieces (which data it reads,
+  which model or device it uses, which system it integrates with).
+- competitor_queries: exactly 2 short web search queries that would
+  surface existing products already tackling this problem:
+  1. commercial products — the product category plus the user ("clinic
+     intake form automation software"), or "alternatives to <tool>" when
+     the complaints name the tool the user is stuck with;
+  2. open-source projects — "<task> open source github".
+  Plain text, no quotes or operators, never the full problem_statement
+  sentence.
+
+Return exactly 3 objects matching the schema. No commentary.
 ```
