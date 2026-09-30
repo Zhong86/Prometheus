@@ -30,6 +30,9 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      # .env points at localhost for running the backend outside Docker.
+      - LANGFLOW_BASE_URL=http://langflow:7860
     depends_on:
       - langflow
     restart: unless-stopped
