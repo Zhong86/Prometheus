@@ -6,3 +6,7 @@ node_modules/
 .next/
 .env
 langflow_data/
+
+# Claude
+.claude/
+CLAUDE.md
