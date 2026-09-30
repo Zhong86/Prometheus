@@ -35,6 +35,7 @@ rather than `dict` because Gemini returns empty `{}` objects for free-form
 | `idea_id` | int | False | 1, 2 or 3. |
 | `evidence` | str | True | 2-4 findings this idea is built on, formatted exactly as: `source \| finding in one sentence \| url`, where source is one of paper, reddit, hackernews, capterra, producthunt. From at least two different sources whenever possible. Copy URLs exactly from the input. |
 | `problem_statement` | str | False | One concrete sentence naming the specific broken workflow and who has it, e.g. "Manual PDF data re-keying in private clinic intake forms." |
+| `niche` | str | False | Short product-style title for the idea, 2-5 words, e.g. "Clinic Intake PDF Extractor". Names the product, not the company; no marketing words. |
 | `domain` | str | False | Industry or category, e.g. "Healthcare", "Legal", "DevOps", "Agriculture". |
 | `target_user` | str | False | The specific role that has this problem, e.g. "Solo clinic administrative staff". |
 | `solution_type` | str | False | Exactly one of: software, ai_automation, iot, other_tech. |
@@ -66,7 +67,7 @@ Public friction / complaints found (grouped by site):
 Header:
 
 ```
-===== Idea {idea_id} =====
+===== Idea {idea_id}: {niche} =====
 ```
 
 Template:
@@ -130,7 +131,9 @@ Do not propose anything matching the ideas-to-avoid list, even loosely.
   url", from at least two different sources whenever the research allows.
   The same finding may support more than one idea only if nothing else
   fits. Never invent URLs.
-- problem_statement, domain, target_user.
+- problem_statement, then niche: a short 2-5 word product-style title
+  for the idea (e.g. "Clinic Intake PDF Extractor"), then domain and
+  target_user.
 - solution_type, and in solution_approach 1-2 sentences on what the
   developer would build and its key technical pieces (which data it reads,
   which model or device it uses, which system it integrates with).

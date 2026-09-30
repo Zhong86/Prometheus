@@ -178,6 +178,7 @@ class IdeaReportComponent(Component):
                         f"Solution: {idea.get('solution_approach', '')}"
                     ),
                     "topic": self.topic or "",
+                    "niche": idea.get("niche", ""),
                     "domain": idea.get("domain", ""),
                     "solution_type": idea.get("solution_type", ""),
                     "solvability_score": idea.get("solvability_score"),
