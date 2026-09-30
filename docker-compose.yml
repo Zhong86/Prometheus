@@ -7,6 +7,13 @@ services:
       - "7860:7860"
     environment:
       - LANGFLOW_AUTO_LOGIN=true
+      # Keep langflow.db on the langflow_data volume; by default it lives inside
+      # the image's site-packages and is wiped whenever the container is recreated.
+      - LANGFLOW_CONFIG_DIR=/app/langflow
+      - LANGFLOW_SAVE_DB_IN_CONFIG_DIR=true
+      # Langflow turns this into a global variable at startup; the Astra DB nodes in
+      # flows/Prometheus.json reference it by name instead of embedding the token.
+      - ASTRA_DB_APPLICATION_TOKEN=${ASTRA_DB_TOKEN}
     env_file:
       - .env
     volumes:
