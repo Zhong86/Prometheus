@@ -129,9 +129,11 @@ class IdeaReportComponent(Component):
         ),
     ]
 
+    # group_outputs shows both as separate handles; without it the UI collapses them into a
+    # dropdown and silently drops the edge from whichever output isn't selected (Save Ideas).
     outputs = [
-        Output(display_name="Report", name="report", method="build_report"),
-        Output(display_name="Idea Documents", name="documents", method="build_documents"),
+        Output(display_name="Report", name="report", method="build_report", group_outputs=True),
+        Output(display_name="Idea Documents", name="documents", method="build_documents", group_outputs=True),
     ]
 
     def _ideas(self) -> list[dict]:
